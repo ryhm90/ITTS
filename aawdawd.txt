@@ -1,0 +1,42 @@
+useEffect(() => {
+    fetch('/api/divisions', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(setDivisions)
+      .catch(() => setSnackbar({ message: 'فشل جلب التشكيل', severity: 'error' }));
+  }, []);
+
+  // 2) when division changes, fetch departments
+  useEffect(() => {
+    if (!divisionId) {
+      setDepartments([]);
+      setDepartmentId('');
+      return;
+    }
+    setLoadingDeps(true);
+    fetch(`/api/departments?divisionId=${divisionId}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(list => {
+        setDepartments(list);
+        setDepartmentId('');
+      })
+      .catch(() => setSnackbar({ message: 'فشل جلب الأقسام', severity: 'error' }))
+      .finally(() => setLoadingDeps(false));
+  }, [divisionId]);
+
+  // 3) when department changes, fetch sections
+  useEffect(() => {
+    if (!departmentId) {
+      setSections([]);
+      setSectionId('');
+      return;
+    }
+    setLoadingSecs(true);
+    fetch(`/api/sections?departmentId=${departmentId}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(list => {
+        setSections(list);
+        setSectionId('');
+      })
+      .catch(() => setSnackbar({ message: 'فشل جلب الشُعب', severity: 'error' }))
+      .finally(() => setLoadingSecs(false));
+  }, [departmentId]);

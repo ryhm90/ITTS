@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+/* ====================================== */
+/* 1. Reset - تهيئة */
+/* ====================================== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ====================================== */
+/* 2. Body - أساسيات الجسم */
+/* ====================================== */
+body {
+  font-family: 'Tajawal', 'Cairo', sans-serif;
+  background-color: #f9fafb; /* خلفية رمادية فاتحة */
+  color: #1f2937; /* لون النص الأساسي */
+  direction: rtl;
+  text-align: right;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* ====================================== */
+/* 3. Typography - الخطوط */
+/* ====================================== */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+p {
+  margin-bottom: 1rem;
+  line-height: 1.7;
+}
+
+/* ====================================== */
+/* 4. عناصر الإدخال Input Elements */
+/* ====================================== */
+input, textarea, select, button {
+  font-family: inherit;
+  direction: rtl;
+  text-align: right;
+  outline: none;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9ca3af; /* رمادي فاتح */
+}
+
+/* ====================================== */
+/* 5. Scrollbar تحسين المظهر */
+/* ====================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ====================================== */
+/* 6. Classes أساسية جاهزة */
+/* ====================================== */
+.btn {
+  @apply inline-flex items-center justify-center rounded-md font-semibold transition-colors;
+}
+
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-2;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white px-4 py-2;
+}
+
+.card {
+  @apply bg-white p-6 rounded-lg shadow-md;
+}
+
+/* ====================================== */
+/* 7. Animations */
+/* ====================================== */
+
+/* Fade In */
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade {
+  animation: fadeIn 0.5s ease-in-out forwards;
+}
+
+/* Slide In from bottom */
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-slide-up {
+  animation: slideInUp 0.6s ease-out forwards;
+}
+
+/* Slide In from right */
+@keyframes slideInRight {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+.animate-slide-right {
+  animation: slideInRight 0.6s ease-out forwards;
+}
+
+/* Bounce In */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-bounce {
+  animation: bounceIn 0.6s ease-out forwards;
+}
+
+/* ====================================== */
+/* 8. Spinner دوران */
+/* ====================================== */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ====================================== */
+/* 9. Pulse - نبض */
+/* ====================================== */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+/* ====================================== */
+/* 10. تحسين للروابط Links */
+/* ====================================== */
+a {
+  color: #2563eb; /* أزرق */
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* ====================================== */
+/* 11. إخفاء عند الحاجة */
+/* ====================================== */
+.hidden {
+  display: none;
+}

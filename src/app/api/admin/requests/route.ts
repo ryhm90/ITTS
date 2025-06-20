@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
   const pageSize = parseInt(url.searchParams.get('pageSize') || '10', 10);
   const offset   = (page - 1) * pageSize;
   const devIdStr = url.searchParams.get('deviceId');
-
+  const DepName = url.searchParams.get('depName');
+  const DivName = url.searchParams.get('divName');
+  const Service = url.searchParams.get('serviceName');
   // (3) افتح الاتصال قاعدة البيانات
   const db = await getConnection();
 
@@ -70,12 +72,23 @@ export async function GET(req: NextRequest) {
     LEFT JOIN dbo.T_description_dv desc2
       ON d.description_dv2 = desc2.id_descript
   `;
+  const devId    = devIdStr ? parseInt(devIdStr, 10) : undefined;
 
-  if (devIdStr) {
+  if (devId !== 7251) {
     // فلترة على جهاز واحد
-    const devId = parseInt(devIdStr, 10);
+    if (devId) {
     ps.input('deviceId', sql.Int, devId);
     query += ` WHERE r.DeviceId = @deviceId`;
+    } else {
+          query += ` WHERE r.Status IN (N'قيد الإستلام', N'استلم')`;
+    }
+  } else if (devId === 7251) {
+    ps.input('DepName', sql.NVarChar, DepName);
+    ps.input('DivName', sql.NVarChar, DivName);
+    ps.input('Service', sql.NVarChar, Service);
+
+    query += ` WHERE r.DepartmentName = @DepName AND r.DivisionName = @DivName AND r.service = @Service  `;
+
   } else {
     // فلترة حسب الحالة الافتراضية
     query += ` WHERE r.Status IN (N'قيد الإستلام', N'استلم')`;
@@ -89,7 +102,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const { recordset } = await ps.query(query);
-
     // ترجيع البيانات + معلومات الـ pagination
     return NextResponse.json({ total, page, pageSize, data: recordset });
   } catch (error) {

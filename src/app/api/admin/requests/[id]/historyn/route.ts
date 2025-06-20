@@ -10,6 +10,7 @@ export const runtime = 'nodejs';
 type HistoryBody = {
   actionType: 'تعليق' | 'تحويل' | 'تغير حالة' | 'طلب جديد';
   actionNote?: string;
+  empolyeeID? :number
 };
 
 export async function POST(req: NextRequest, context: any) {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest, context: any) {
   } catch {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
   }
-  const actorName = payload.name; // لاسم من قام بالإجراء
+  const actorId = payload.id; // لاسم من قام بالإجراء
 
   // 2) استخراج requestId من معرّف المسار
   const { id } = context.params;
@@ -58,11 +59,11 @@ export async function POST(req: NextRequest, context: any) {
     const handlersUnitResult = await request
       .input('requestIdu', sql.Int, requestId)
       .query(`
-    SELECT u.UserID as EmpID, chu.CurrentHandlerRole
+    SELECT u.UserID as EmpID, u.role as CurrentHandlerRole
     FROM CurrentHandlerRoleUnit chu
     JOIN [Users] u ON u.UnitId = chu.CurrentHandlerRoleID
     WHERE chu.RequestID = @requestIdu
-    GROUP BY u.UserID, chu.CurrentHandlerRole;
+    GROUP BY u.UserID, u.role;
       `);
     const handlersUnit: { EmpID: number; CurrentHandlerRole: string }[] =
       handlersUnitResult.recordset;
@@ -71,16 +72,15 @@ export async function POST(req: NextRequest, context: any) {
     const handlersSectionResult = await request
       .input('requestIdDs', sql.Int, requestId)
       .query(`
-            SELECT u.UserID as EmpID, chd.CurrentHandlerRole
+            SELECT u.UserID as EmpID, u.role as CurrentHandlerRole
     FROM CurrentHandlerRoleDivision chd
-    JOIN [Users] u ON u.DepartmentId = chd.CurrentHandlerRoleID
+    JOIN [Users] u ON u.SectionId = chd.CurrentHandlerRoleID
     WHERE chd.RequestID = @requestIdDs
-    GROUP BY u.UserID, chd.CurrentHandlerRole;
+    GROUP BY u.UserID, u.role;
 
       `);
     const handlersSection: { EmpID: number; CurrentHandlerRole: string }[] =
       handlersSectionResult.recordset;
-
     // 4d) جلب رقم الجهة المستفيدة (RequesterID) من جدول Requests
     const reqInfoRes = await request
       .input('requestIdRq', sql.Int, requestId)
@@ -114,23 +114,27 @@ export async function POST(req: NextRequest, context: any) {
     const toNotify: Recipient[] = [];
 
     for (const row of handlersUnit) {
-      if (row.CurrentHandlerRole === 'مسؤول وحدة') {
+
+      if (row.CurrentHandlerRole === 'مسؤول وحدة' && actorId !== row.EmpID) {
         toNotify.push({ role: 'مسؤول وحدة', empId: row.EmpID });
       }
     }
 
     for (const row of handlersSection) {
-      if (row.CurrentHandlerRole === 'مدير شعبة') {
+      if (row.CurrentHandlerRole === 'مدير شعبة'  && actorId !== row.EmpID) {
         toNotify.push({ role: 'مدير شعبة', empId: row.EmpID });
       }
     }
 
-    if (departmentManagerID) {
+    if (departmentManagerID   && actorId !== departmentManagerID) {
       toNotify.push({ role: 'مدير قسم', empId: departmentManagerID });
     }
 
     // دائمًا الجهة المستفيدة
+    if (actorId !== CreatedByEmpID) {
     toNotify.push({ role: 'جهة مستفيدة', empId: CreatedByEmpID });
+
+    }
 
     // 6) إدراج صف لكل مستفيد في جدول Notifications دون تكرار
     const seen = new Set<string>();

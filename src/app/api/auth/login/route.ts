@@ -69,13 +69,15 @@ export async function POST(request: NextRequest) {
     );
 
     const response = NextResponse.json({ success: true });
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      maxAge: 60 * 60 * 24,
-      path: '/',
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-    });
+const isProd = process.env.NODE_ENV === 'production';
+response.cookies.set('token', token, {
+  httpOnly: true,
+  maxAge: 60 * 60 * 24,
+  path: '/',
+  sameSite: 'lax',
+  secure: isProd && process.env.NEXTAUTH_URL?.startsWith('https://'),
+});
+
 
     return response;
   } catch (err) {

@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (pathname === '/dashboard' && token) {
+  if ((pathname === '/dashboard') && token) {
     try {
       const payload = jwtDecode<CustomJwtPayload>(token);
 

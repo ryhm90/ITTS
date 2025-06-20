@@ -81,10 +81,14 @@ export default function OffcanvasSidebar() {
   // إعداد التنقل
   const handleToggle = () => setOpen(o => !o);
   const handleClose  = () => setOpen(false);
-  const handleLogout = async () => {
-    if (!isDesktop) setOpen(false);
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    router.push('/login');
+const handleLogout = async () => {
+    const res = await fetch('/api/auth/logout', { method: 'POST' });
+    if (res.ok) {
+      // هنا نحذف أي حالة محليّة إذا احتجت
+      router.push('/login');
+    } else {
+      console.error('Logout failed');
+    }
   };
 
   // التنبيهات: badge + popover

@@ -10,15 +10,21 @@ export default function NewGroupPage() {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const res = await fetch('/api/chat/users');
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-      }
-    };
-    fetchUsers();
-  }, []);
+  const fetchUsers = async () => {
+    const res = await fetch('/api/chat/users');
+    if (!res.ok) return;
+    const data = await res.json();
+    // إذا data.users مصفوفة خذها، وإلا إذا data مصفوفة خذها
+    const list = Array.isArray(data.users)
+      ? data.users
+      : Array.isArray(data)
+        ? data
+        : [];
+    setUsers(list);
+  };
+  fetchUsers();
+}, []);
+
 
   const handleCreateGroup = async () => {
     const res = await fetch('/api/chat/groups', {
@@ -55,17 +61,18 @@ export default function NewGroupPage() {
 
       <h2 className="text-xl mb-2">اختر الأعضاء:</h2>
       <div className="flex flex-col gap-2 mb-6 max-h-64 overflow-y-auto">
-        {users.map((user) => (
-          <label key={user.UserID} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={selectedUsers.includes(user.UserID)}
-              onChange={() => toggleUserSelection(user.UserID)}
-            />
-            {user.FullName}
-          </label>
-        ))}
-      </div>
+  {(users || []).map((user) => (
+    <label key={user.UserID} className="flex items-center gap-2">
+      <input
+        type="checkbox"
+        checked={selectedUsers.includes(user.UserID)}
+        onChange={() => toggleUserSelection(user.UserID)}
+      />
+      {user.FullName}
+    </label>
+  ))}
+</div>
+
 
       <button onClick={handleCreateGroup} className="bg-green-600 text-white py-2 px-4 rounded w-full">
         إنشاء المجموعة

@@ -65,7 +65,7 @@ import 'dayjs/locale/ar';
 import {  TextFieldProps } from '@mui/material';
 import CalendarTodayIcon      from '@mui/icons-material/CalendarToday';
 import InputAdornment         from '@mui/material/InputAdornment';
-
+import WifiIcon from '@mui/icons-material/Wifi';
 //
 // Interfaces
 //
@@ -103,7 +103,7 @@ interface UserContext {
   section:    { id: number };
 }
 
-type CategoryKey = 'software' | 'maintenance' | 'other';
+type CategoryKey = 'software' | 'maintenance' | 'network' |  'other';
 
 const categories: Record<CategoryKey, { label: string; icon: React.ReactNode; services: string[] }> = {
   software: {
@@ -113,8 +113,13 @@ const categories: Record<CategoryKey, { label: string; icon: React.ReactNode; se
   },
   maintenance: {
     label: 'خدمات صيانة',
-    icon: <BuildIcon color="primary" />,
+    icon: <BuildIcon color="primary"/>,
     services: ['صيانة الحاسبات وملحقاتها', 'صيانة الطابعات وملحقاتها', 'صيانة أجهزة الاستنساخ', 'صيانة كاميرات المراقبة'],
+  },
+   network: {
+    label: 'خدمات انترنت',
+    icon: <WifiIcon color="primary" />,
+    services: ['صيانة خط انترنت', 'اضافة خط انترنت'],
   },
   other: {
     label: 'خدمات أخرى',
@@ -242,6 +247,14 @@ export default function Dashboard() {
       if (hres.ok) {
         const all: HistoryItem[] = await hres.json();
         setViewHistory(all.filter(h => h.ActionType !== 'تعليق'));
+        await fetch(`/api/admin/requests/${currentId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تعليق',
+        }),
+      });
       }
     } catch (err: any) {
       // عرض رسالة خطأ...
@@ -731,9 +744,6 @@ function NewRequestDialog({ open, onClose, onSuccess, onError }: NewRequestDialo
 
     let typeId: number;
     switch (selectedService) {
-      case 'أجهزة البصمة':
-        typeId = 6;
-        break;
       case 'صيانة الطابعات وملحقاتها':
         typeId = 2;
         break;
@@ -818,40 +828,49 @@ setImagePreviews(prev => [...prev, result])          }
   };
   // --------------- إرسال النموذج ---------------
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // نتأكد من تعبئة الحقول الأساسية
-    if (!title || !description || !memoID || !memoDate || !selectedService || !selectedDevice) {
-      return onError('يرجى تعبئة جميع الحقول الضرورية واختيار خدمة وجهاز');
-    }
+  // نتأكد من تعبئة الحقول الأساسية
+  if (
+    !title ||
+    !description ||
+    !memoID ||
+    !memoDate ||
+    !selectedService ||
+    (TypeIDC > 0 && !selectedDevice)
+  ) {
 
-    setUploading(true);
+    return onError('يرجى تعبئة جميع الحقول الضرورية');
+  }
 
-    // نحضّر FormData لإرسال الحقول + الملفات
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('service', selectedService);
+  setUploading(true);
+
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('description', description);
+  formData.append('service', selectedService);
+  formData.append('memoID', memoID);
+  formData.append('memoDate', memoDate);
+
+  // إذا كان الجهاز مطلوباً فقط
+  if (TypeIDC > 0 && selectedDevice) {
     formData.append('deviceId', String(selectedDevice));
-    formData.append('memoID', memoID);
-    formData.append('memoDate', memoDate);
+  }
 
-    // نضيف جميع الملفات تحت المفتاح "attachments"
-    files.forEach(file => {
-      formData.append('attachments', file);
+  // إضافة المرفقات
+  files.forEach(file => formData.append('attachments', file));
+
+  try {
+    const res = await fetch('/api/requests', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
     });
-
-    try {
-      const res = await fetch('/api/requests', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const { error } = await res.json().catch(() => ({}));
-        throw new Error(error || 'فشل في إرسال الطلب');
-      }
-      onSuccess();
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({}));
+      throw new Error(error || 'فشل في إرسال الطلب');
+    }
+    onSuccess();
 
       // نفرّغ كافة الحقول والمعاينات عند النجاح
       setTitle('');
@@ -990,40 +1009,42 @@ setImagePreviews(prev => [...prev, result])          }
 
               {/* STEP 2: الأجهزة */}
               <Step>
-                <StepLabel>{selectedService ?? 'اختر الخدمة أولاً'}</StepLabel>
-                <StepContent>
-                  {selectedService ? (
-                    <>
-                      <Typography gutterBottom>
-                        الأجهزة المتوفرة لخدمة “{selectedService}”:
-                      </Typography>
-                      <FormControl component="fieldset">
-                        <RadioGroup
-                          value={selectedDevice ?? ''}
-                          onChange={e => setSelectedDevice(Number(e.target.value))}
-                        >
-                          {devices.map(d => (
-                            <FormControlLabel
-                              key={d.id}
-                              value={d.id}
-                              control={<Radio />}
-                              label={`#${d.noDv} — ${d.typeName} - ${d.descriptionName}`}
-                            />
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
-                    </>
-                  ) : (
-                    <Typography color="text.secondary">لم تختَر خدمة بعد.</Typography>
-                  )}
-                  <Box sx={{ mt: 2 }}>
-                    <Button onClick={handleBack} sx={{ mr: 1 }}>
-                      السابق
-                    </Button>
-                    <Button onClick={handleReset}>إعادة الاختيار</Button>
-                  </Box>
-                </StepContent>
-              </Step>
+  <StepLabel>{selectedService ?? 'اختر الخدمة أولاً'}</StepLabel>
+  <StepContent>
+    {TypeIDC > 0 ? (
+      <>
+        <Typography gutterBottom>
+          الأجهزة المتوفرة لخدمة “{selectedService}”:
+        </Typography>
+        <FormControl component="fieldset">
+          <RadioGroup
+            value={selectedDevice ?? ''}
+            onChange={e => setSelectedDevice(Number(e.target.value))}
+          >
+            {devices.map(d => (
+              <FormControlLabel
+                key={d.id}
+                value={d.id}
+                control={<Radio />}
+                label={`#${d.noDv} — ${d.typeName} - ${d.descriptionName}`}
+              />
+            ))}
+          </RadioGroup>
+        </FormControl>
+      </>
+    ) : (
+      <Typography color="text.secondary">
+        هذه الخدمة لا تتطلب اختيار جهاز.
+      </Typography>
+    )}
+    <Box sx={{ mt: 2 }}>
+      <Button onClick={handleBack} sx={{ mr: 1 }}>
+        السابق
+      </Button>
+      <Button onClick={handleReset}>إعادة الاختيار</Button>
+    </Box>
+  </StepContent>
+</Step>
             </Stepper>
           </Box>
 

@@ -41,7 +41,6 @@ export async function GET(req: NextRequest) {
           ${userRole === 'جهة مستفيدة' ? "AND ChangeType <> N'تعليق'" : ''}
       `);
     const total = cnt[0]?.Total ?? 0;
-console.log(total)
     // جلب الصفحة المطلوبة
     const { recordset } = await db
       .request()

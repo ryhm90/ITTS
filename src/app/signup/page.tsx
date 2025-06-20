@@ -84,7 +84,7 @@ export default function SignupPage() {
     });
 
     if (res.ok) {
-      router.push('/login');
+      //router.push('/login');
     } else {
       const { error } = await res.json();
       alert(error || 'فشل في التسجيل');

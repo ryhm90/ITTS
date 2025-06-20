@@ -18,15 +18,19 @@ export default function GroupChatPage() {
 
   useEffect(() => {
     const fetchGroupData = async () => {
-      const res = await fetch(`/api/chat/group/${groupId}/messages`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages);
-        setGroupName(data.groupName);
-        setGroupMembers(data.members);
-        setInviteLink(`${window.location.origin}/chat/group/invite/${data.inviteCode}`);
-      }
-    };
+    const res = await fetch(`/api/chat/group/${groupId}/messages`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    setMessages(data.messages       ?? []);
+    setGroupName(data.groupName     ?? `#${groupId}`);
+    setGroupMembers(data.members     ?? []);    // ← default to empty array
+    setInviteLink(
+      data.inviteCode
+        ? `${window.location.origin}/chat/group/invite/${data.inviteCode}`
+        : ''
+    );
+  };
 
     fetchGroupData();
 

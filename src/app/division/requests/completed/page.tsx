@@ -1,7 +1,9 @@
 // src/app/division/dashboard/page.tsx
 'use client';
+
 import React, { useRef, useEffect, useState, FormEvent } from 'react';
 import Link from 'next/link';
+import { TabPanel } from '@mui/lab';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -12,7 +14,6 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  
   FormControl,
   DialogTitle,
   Snackbar,
@@ -23,15 +24,12 @@ import {
   Checkbox,
   FormControlLabel,
 } from '@mui/material';
-import { TabPanel } from '@mui/lab';
-
 import { showToast } from '@/lib/toast';
 import {
   PageContainer,
   HeaderRow,
   PageTitle,
   TablePaper,
-  
   Table,
   TableHead,
   TableRow,
@@ -52,7 +50,7 @@ import {
   PrimaryButton,
 } from '@/components/StyledPageLayout';
 import TablePagination from '@mui/material/TablePagination';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 interface DivisionRequest {
   RequestID: number;
@@ -72,10 +70,9 @@ interface RequestDetail extends DivisionRequest {
   Description: string;
   deviceId: number;
   sectionId: number;
-  service: string;
   memoID: string;
   memoDate: string;
-  ImageUrls: string; // comma-separated URLs
+  ImageUrls: string;
 }
 
 interface HistoryItem {
@@ -114,88 +111,80 @@ interface DecodedToken {
 
 type ForwardRow = {
   unitId: number | '';
-  empRows: { id: number; note: string }[];
+  empRows: { id: number; name: string ,note: string }[];
 };
 
 export default function DivisionDashboard() {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  // — Main requests list and pagination
+  // — قائمة الطلبات مع pagination —
   const [requests, setRequests] = useState<DivisionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
 
-  // Snackbar general
-  const [snackbar, setSnackbar] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
+  // Snackbar عام
+  const [snackbar, setSnackbar] = useState<{ message: string; severity: 'error' | 'success' } | null>(null);
 
-  // — Details dialog and its data
+  // — تفاصيل الطلب —
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedReqId, setSelectedReqId] = useState<number | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detail, setDetail] = useState<RequestDetail | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [deviceRequests, setDeviceRequests] = useState<DeviceRequest[]>([]);
-  const [detailTab, setDetailTab] = useState<'0' | '1' | '2'>('0');
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [assignedEmpIds, setAssignedEmpIds] = useState<number[]>([]);
 
-  // — Comment section
+  // تبويبات
+  const [detailTab, setDetailTab] = useState<'0' | '1' | '2'>('0');
+
+  // تعليق
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
 
-  // — User info (for chat bubble highlighting)
+  // المستخدم الحالي
   const [user, setUser] = useState<DecodedToken | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // — “تأكيد الإنجاز” dialog
+  // تأكيد الإنجاز
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const handleOpenComplete = () => setCompleteOpen(true);
+  const handleCloseComplete = () => setCompleteOpen(false);
 
-  // — “استقدام للاستلام” dialog
+  // استقدام للاستلام
   const [summonOpen, setSummonOpen] = useState(false);
   const [summoning, setSummoning] = useState(false);
+  const handleOpenSummon = () => setSummonOpen(true);
+  const handleCloseSummon = () => setSummonOpen(false);
 
-  // — Attachments preview dialog
-  const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
-  const [attachmentUrl, setAttachmentUrl] = useState<string>('');
-  const [attachmentType, setAttachmentType] = useState<'image' | 'pdf'>('image');
-
-  // — Forward modal
+  // نافذة التحويل
   const [forwardOpen, setForwardOpen] = useState(false);
   const [units, setUnits] = useState<Unit[]>([]);
   const [unitEmployeesMap, setUnitEmployeesMap] = useState<Record<number, Employee[]>>({});
   const [forwardList, setForwardList] = useState<ForwardRow[]>([]);
   const [forwarding, setForwarding] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // — Load current user on route change
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        }
-      } catch {
-        setUser(null);
-      }
-    })();
-  }, [pathname]);
-
-  // — Fetch main requests with pagination
+  // تحميل قائمة الطلبات مع pagination
   const loadRequests = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/division/requests/complete?page=${page}&pageSize=${pageSize}`, {
-        credentials: 'include',
-      });
+ const res = await fetch(`/api/division/requests/complete?page=${page}&pageSize=${pageSize}`,        { credentials: 'include' }
+      );
       if (!res.ok) throw new Error();
-      const json = await res.json();
-      // توقع أن تكون الصيغة: { items: [...], total: number }
-      const items = Array.isArray(json.items) ? json.items : Array.isArray(json) ? json : [];
-      setRequests(items as DivisionRequest[]);
-      setTotal(json.total ?? items.length);
+      const data = await res.json();
+      // نتأكد من أن data.items أو data أو data.data هو المصفوفة
+      const items: DivisionRequest[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data.items)
+        ? data.items
+        : Array.isArray(data.data)
+        ? data.data
+        : [];
+      setRequests(items);
+      setTotal(typeof data.total === 'number' ? data.total : items.length);
     } catch {
       setSnackbar({ message: 'فشل في جلب طلبات الشعبة', severity: 'error' });
     } finally {
@@ -207,25 +196,47 @@ export default function DivisionDashboard() {
     loadRequests();
   }, [page, pageSize]);
 
-  // — Handler لفتح تفاصيل الطلب
+  // جلب بيانات المستخدم الحالي
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = await res.json();
+        setUser(res.ok ? data : null);
+      } catch {
+        setUser(null);
+      }
+    })();
+  }, [pathname]);
+
+  // فتح تفاصيل الطلب
   const handleView = async (id: number) => {
     setSelectedReqId(id);
     setDetailOpen(true);
     setDetailLoading(true);
+
     try {
-      const [reqRes, histRes, sameRes] = await Promise.all([
+      const [reqRes, histRes, sameRes, chRes] = await Promise.all([
         fetch(`/api/division/requests/${id}`, { credentials: 'include' }),
         fetch(`/api/admin/requests/${id}/history`, { credentials: 'include' }),
-        fetch(`/api/division/requests?deviceId=${id}`, { credentials: 'include' }),
+        fetch(`/api/division/requests?requestId=${id}`, { credentials: 'include' }),
+        fetch(`/api/division/requests/${id}/current-handlers`, { credentials: 'include' }),
       ]);
       if (reqRes.ok) setDetail(await reqRes.json());
       if (histRes.ok) setHistory(await histRes.json());
-      // تأكد من إرجاع مصفوفة
       if (sameRes.ok) {
-        const drJson = await sameRes.json();
-        if (Array.isArray(drJson)) setDeviceRequests(drJson as DeviceRequest[]);
-        else if (drJson.items && Array.isArray(drJson.items)) setDeviceRequests(drJson.items as DeviceRequest[]);
-        else setDeviceRequests([]);
+        const sameData = await sameRes.json();
+        // تأكد أن sameData هو مصفوفة
+        const sameItems: DeviceRequest[] = Array.isArray(sameData)
+          ? sameData
+          : Array.isArray(sameData.items)
+          ? sameData.items
+          : [];
+        setDeviceRequests(sameItems);
+      }
+      if (chRes.ok) {
+        const assigned: { EmpID: number; EmpName: string }[] = await chRes.json();
+        setAssignedEmpIds(assigned.map((row) => row.EmpID));
       }
     } catch {
       showToast({ type: 'error', message: 'فشل في تحميل التفاصيل' });
@@ -235,7 +246,7 @@ export default function DivisionDashboard() {
     }
   };
 
-  // — إغلاق حوار التفاصيل
+  // إغلاق تفاصيل الطلب
   const handleDetailClose = () => {
     setDetailOpen(false);
     setDetailTab('0');
@@ -245,13 +256,14 @@ export default function DivisionDashboard() {
     setDeviceRequests([]);
     setForwardList([]);
     setComment('');
+    setAssignedEmpIds([]);
   };
 
-  // — إضافة تعليق
+  // إضافة تعليق
   const handleComment = async (e: FormEvent) => {
     e.preventDefault();
     if (!comment.trim() || !selectedReqId) {
-      showToast({ type: 'error', message: 'اكتب تعليقاً أولاً' });
+      showToast({ type: 'error', message: 'اكتب تعليقًا أولاً' });
       return;
     }
     setSending(true);
@@ -268,6 +280,14 @@ export default function DivisionDashboard() {
       // إعادة تحميل السجل
       const h = await fetch(`/api/admin/requests/${selectedReqId}/history`, { credentials: 'include' });
       if (h.ok) setHistory(await h.json());
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تعليق',
+        }),
+      });
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل إضافة التعليق' });
     } finally {
@@ -275,9 +295,7 @@ export default function DivisionDashboard() {
     }
   };
 
-  // — إعداد “تأكيد الإنجاز”
-  const handleOpenComplete = () => setCompleteOpen(true);
-  const handleCloseComplete = () => setCompleteOpen(false);
+  // تأكيد الإنجاز
   const handleConfirmComplete = async () => {
     if (!selectedReqId) return;
     setCompleting(true);
@@ -290,6 +308,15 @@ export default function DivisionDashboard() {
       showToast({ type: 'success', message: 'تم تأكيد الإنجاز' });
       handleCloseComplete();
       handleDetailClose();
+      // إعادة تحميل قائمة الطلبات
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تغير حالة',
+        }),
+      });
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل في تأكيد الإنجاز' });
@@ -298,9 +325,7 @@ export default function DivisionDashboard() {
     }
   };
 
-  // — إعداد “استقدام للاستلام”
-  const handleOpenSummon = () => setSummonOpen(true);
-  const handleCloseSummon = () => setSummonOpen(false);
+  // تأكيد الاستقدام للاستلام
   const handleConfirmSummon = async () => {
     if (!selectedReqId) return;
     setSummoning(true);
@@ -313,6 +338,14 @@ export default function DivisionDashboard() {
       showToast({ type: 'success', message: 'تم تسجيل الاستقدام للاستلام' });
       handleCloseSummon();
       handleDetailClose();
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تغير حالة',
+        }),
+      });
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل تسجيل الاستقدام' });
@@ -321,22 +354,7 @@ export default function DivisionDashboard() {
     }
   };
 
-  // — فتح معاينة المرفقات
-  const handleOpenAttachment = (url: string) => {
-    const lower = url.toLowerCase();
-    setAttachmentType(lower.endsWith('.pdf') ? 'pdf' : 'image');
-    setAttachmentUrl(url);
-    setAttachmentModalOpen(true);
-  };
-  const handlePrintAttachment = () => {
-    const w = window.open(attachmentUrl, '_blank');
-    if (w) {
-      w.focus();
-      setTimeout(() => w.print(), 500);
-    }
-  };
-
-  // — فتح “تحويل الطلب”
+  // فتح نافذة التحويل
   const openForward = async () => {
     if (!detail) return;
     setForwardList([]);
@@ -348,12 +366,13 @@ export default function DivisionDashboard() {
       showToast({ type: 'error', message: 'فشل في جلب الوحدات' });
     }
   };
+
   const addForwardRow = () =>
     setForwardList((fl) => [...fl, { unitId: '', empRows: [] }]);
   const removeForwardRow = (idx: number) =>
     setForwardList((fl) => fl.filter((_, i) => i !== idx));
 
-  // — جلب الموظفين عند اختيار وحدة
+  // جلب الموظفين لكل وحدة مختارة
   useEffect(() => {
     forwardList.forEach((row) => {
       if (row.unitId && !unitEmployeesMap[row.unitId]) {
@@ -367,45 +386,77 @@ export default function DivisionDashboard() {
     });
   }, [forwardList]);
 
-  // — إرسال “تحويل الطلب”
-  const handleForward = async () => {
+  // إرسال التحويل
+ const handleForward = async () => {
     if (forwardList.some((f) => !f.unitId || f.empRows.length === 0)) {
-      showToast({ type: 'error', message: 'اكمل تعبئة كل صف' });
+      showToast({ type: 'error', message: 'أكمل تعبئة كل صف' });
       return;
     }
     setForwarding(true);
+
     try {
       const payload = forwardList.map((r) => ({
         divisionID: r.unitId,
         division: units.find((u) => u.id === r.unitId)!.name,
-        employees: r.empRows.map((er) => ({ id: er.id, note: er.note })),
+        employees: r.empRows.map((er) => ({
+          id: er.id,
+          name: er.name,
+          note: er.note,
+        })),
       }));
-      const res = await fetch(`/api/division/requests/${selectedReqId}/forward`, {
+      const res = await fetch(
+        `/api/division/requests/${selectedReqId}/forward`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ forwards: payload }),
+        }
+      );
+      if (!res.ok) throw await res.json();
+
+      showToast({ type: 'success', message: 'تم التحويل' });
+      setForwardOpen(false);
+await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ forwards: payload }),
+        body: JSON.stringify({
+          actionType: 'تحويل',
+        }),
       });
-      if (!res.ok) throw await res.json();
-      showToast({ type: 'success', message: 'تم التحويل بنجاح' });
-      setForwardOpen(false);
+      // 1) إعادة تحميل قائمة الطلبات الرئيسية
       await loadRequests();
+
+      // 2) بعد التحويل: نعيد جلب current-handlers حتى تتحدّث قائمة الـ assignedEmpIds
+      if (selectedReqId) {
+        const chRes = await fetch(
+          `/api/division/requests/${selectedReqId}/current-handlers`,
+          { credentials: 'include' }
+        );
+        if (chRes.ok) {
+          const assigned: { EmpID: number; EmpName: string }[] = await chRes.json();
+          setAssignedEmpIds(assigned.map((row) => row.EmpID));
+        }
+      }
     } catch (err: any) {
-      showToast({ type: 'error', message: err.error || 'فشل في التحويل' });
+      showToast({ type: 'error', message: err.error || 'فشل التحويل' });
     } finally {
       setForwarding(false);
     }
   };
-
-  // — Scroll to bottom عند فتح تبويب السجل أو تغيّره
-  useEffect(() => {
-    if (detailTab === '2') {
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [detailTab, history]);
-
-  // — Main render
   const actor = `${user?.role} - ${user?.section?.name} - ${user?.name}`;
+React.useEffect(() => {
+    const vr = searchParams.get('viewRequest');
+    if (vr) {
+      const id = Number(vr);
+      if (!isNaN(id)) {
+        handleView(id);
+        // نظف الـ query من الـ URL
+        router.replace('/division/dashboard', { scroll: false });
+      }
+    }
+  }, [searchParams, router]);
 
   return (
     <PageContainer>
@@ -413,16 +464,13 @@ export default function DivisionDashboard() {
         <PageTitle>الطلبات المنجزة</PageTitle>
       </HeaderRow>
 
-      {/* — جدول الطلبات مع pagination */}
-      {loading ? (
-        <Typography align="center" sx={{ py: 6 }}>
-          جاري التحميل…
-        </Typography>
-      ) : requests.length === 0 ? (
+      {!loading && requests.length === 0 && (
         <Typography align="center" color="text.secondary">
-          لا توجد طلبات حالياً.
+          لا توجد طلبات حاليًا.
         </Typography>
-      ) : (
+      )}
+
+      {!loading && requests.length > 0 && (
         <TablePaper>
           <Table>
             <TableHead>
@@ -453,7 +501,9 @@ export default function DivisionDashboard() {
                     {r.deviceType}#{r.deviceNo}
                     {r.deviceDesc && ` (${r.deviceDesc})`}
                   </TableBodyCell>
-                  <TableBodyCell>{r.RequestDate.slice(0, 10)}</TableBodyCell>
+                  <TableBodyCell>
+                    {new Date(r.RequestDate).toISOString().slice(0, 10)}
+                  </TableBodyCell>
                   <TableBodyCell>{r.service}</TableBodyCell>
                   <TableBodyCell>{r.Status}</TableBodyCell>
                   <TableBodyCell>
@@ -465,10 +515,11 @@ export default function DivisionDashboard() {
               ))}
             </tbody>
           </Table>
+
           <TablePagination
             component="div"
             count={total}
-            page={page - 1}
+            page={page - 1} // 0-based index
             onPageChange={(_, newPage) => setPage(newPage + 1)}
             rowsPerPage={pageSize}
             onRowsPerPageChange={(e) => {
@@ -480,19 +531,17 @@ export default function DivisionDashboard() {
         </TablePaper>
       )}
 
-      {/* — Dialog تفاصيل الطلب (Tabs) — */}
+      {/* — تفاصيل الطلب مع التبويبات — */}
       <Dialog open={detailOpen} onClose={handleDetailClose} fullWidth maxWidth="md">
         <DialogTitle>تفاصيل الطلب #{detail?.RequestID}</DialogTitle>
-
         <StyledTabContext value={detailTab}>
-          <StyledTabList onChange={(_, v) => setDetailTab(v)} variant="scrollable" scrollButtons="auto">
+          <StyledTabList onChange={(_, v) => setDetailTab(v)}>
             <StyledTab label="التفاصيل" value="0" />
             <StyledTab label="طلبات بنفس الجهاز" value="1" />
             <StyledTab label="سجل العمليات" value="2" />
           </StyledTabList>
-
           <DialogContent>
-            {/* --- Tab 0: تفاصيل الأساس --- */}
+            {/* تبويب 0: التفاصيل */}
             <TabPanel value="0">
               {detailLoading || !detail ? (
                 <Typography>جاري التحميل…</Typography>
@@ -506,7 +555,8 @@ export default function DivisionDashboard() {
                     <strong>رقم المذكرة:</strong> {detail.memoID}
                   </Typography>
                   <Typography>
-                    <strong>تاريخ المذكرة:</strong> {detail.memoDate.slice(0, 10)}
+                    <strong>تاريخ المذكرة:</strong>{' '}
+                    {detail.memoDate ? detail.memoDate.slice(0, 10) : ''}
                   </Typography>
                   <Typography>
                     <strong>الموضوع:</strong> {detail.Title}
@@ -515,7 +565,8 @@ export default function DivisionDashboard() {
                     <strong>الوصف:</strong> {detail.Description}
                   </Typography>
                   <Typography>
-                    <strong>تاريخ الطلب:</strong> {new Date(detail.RequestDate).toISOString().slice(0, 10)}
+                    <strong>تاريخ الطلب:</strong>{' '}
+                    {new Date(detail.RequestDate).toISOString().slice(0, 10)}
                   </Typography>
                   <Typography>
                     <strong>الحالة:</strong> {detail.Status}
@@ -523,14 +574,15 @@ export default function DivisionDashboard() {
                   <Typography>
                     <strong>الهيكل الهرمي:</strong>
                     <br />
-                    {detail.divisionName} &gt; {detail.departmentName} &gt; {detail.sectionName}
+                    {detail.divisionName} &gt; {detail.departmentName} &gt;{' '}
+                    {detail.sectionName}
                   </Typography>
                   <Typography>
                     <strong>الجهاز:</strong> {detail.deviceType}#{detail.deviceNo}
                     {detail.deviceDesc && ` (${detail.deviceDesc})`}
                   </Typography>
 
-                  {/* --- قسم المرفقات --- */}
+                  {/* قسم المرفقات */}
                   {detail.ImageUrls && detail.ImageUrls.trim() !== '' && (
                     <>
                       <SectionTitle sx={{ mt: 2 }}>المرفقات</SectionTitle>
@@ -545,6 +597,7 @@ export default function DivisionDashboard() {
                         {detail.ImageUrls.split(',').map((url, idx) => {
                           const trimmed = url.trim();
                           if (!trimmed) return null;
+
                           if (trimmed.toLowerCase().endsWith('.pdf')) {
                             return (
                               <Box
@@ -560,7 +613,7 @@ export default function DivisionDashboard() {
                                   borderRadius: 1,
                                   cursor: 'pointer',
                                 }}
-                                onClick={() => handleOpenAttachment(trimmed)}
+                                onClick={() => window.open(trimmed, '_blank')}
                               >
                                 <PictureAsPdfIcon fontSize="large" color="error" />
                                 <Typography variant="caption" noWrap sx={{ mt: 0.5 }}>
@@ -569,6 +622,7 @@ export default function DivisionDashboard() {
                               </Box>
                             );
                           }
+
                           return (
                             <Box
                               key={idx}
@@ -580,7 +634,7 @@ export default function DivisionDashboard() {
                                 borderRadius: 1,
                                 cursor: 'pointer',
                               }}
-                              onClick={() => handleOpenAttachment(trimmed)}
+                              onClick={() => window.open(trimmed, '_blank')}
                             >
                               <img
                                 src={trimmed}
@@ -598,32 +652,41 @@ export default function DivisionDashboard() {
                     </>
                   )}
 
-                  {/* --- زر الاستقدام والتحويل وتأكيد الإنجاز --- */}
-                  <Box mt={2} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  {/* أزرار الإجراء */}
+                  <Box
+                    mt={2}
+                    sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
+                  >
                     <Button
                       variant="contained"
                       color="success"
                       onClick={handleOpenComplete}
                       disabled={!detail || detail.Status === 'تأكيد انجاز' || detail.Status === 'اعتذار' || detail.Status === 'مراجعة الطلب'}
+                      sx={{ ml: 1 }}
                     >
                       تأكيد الإنجاز
                     </Button>
+
                     <Button
                       variant="contained"
                       color="info"
                       onClick={handleOpenSummon}
                       disabled={!detail || detail.Status !== 'تم التوجيه'}
+                      sx={{ ml: 1 }}
                     >
                       استقدام للاستلام
                       {summoning && '…'}
                     </Button>
-                    <PrimaryButton onClick={openForward}>تحويل الطلب</PrimaryButton>
+
+                    <PrimaryButton onClick={openForward} sx={{ ml: 1 }}>
+                      تحويل الطلب
+                    </PrimaryButton>
                   </Box>
                 </>
               )}
             </TabPanel>
 
-            {/* --- Tab 1: طلبات بنفس الجهاز --- */}
+            {/* تبويب 1: طلبات بنفس الجهاز */}
             <TabPanel value="1">
               {deviceRequests.length === 0 ? (
                 <Typography>لا توجد طلبات أخرى لنفس الجهاز.</Typography>
@@ -633,9 +696,11 @@ export default function DivisionDashboard() {
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        {['#', 'الموضوع', 'الخدمة', 'الحالة', 'التاريخ', 'إجراء'].map((h) => (
-                          <TableHeaderCell key={h}>{h}</TableHeaderCell>
-                        ))}
+                        {['#', 'الموضوع', 'الخدمة', 'الحالة', 'التاريخ', 'إجراء'].map(
+                          (h) => (
+                            <TableHeaderCell key={h}>{h}</TableHeaderCell>
+                          )
+                        )}
                       </TableRow>
                     </TableHead>
                     <tbody>
@@ -645,13 +710,14 @@ export default function DivisionDashboard() {
                           <TableBodyCell>{dr.Title}</TableBodyCell>
                           <TableBodyCell>{dr.service}</TableBodyCell>
                           <TableBodyCell>{dr.Status}</TableBodyCell>
-                          <TableBodyCell>{new Date(dr.RequestDate).toISOString().slice(0, 10)}</TableBodyCell>
                           <TableBodyCell>
-                            <Link href={`/division/requests/${dr.RequestID}`} passHref>
-                              <IconButton size="small">
+                            {new Date(dr.RequestDate).toISOString().slice(0, 10)}
+                          </TableBodyCell>
+                          <TableBodyCell>
+                              <IconButton onClick={() => handleView(dr.RequestID)}>
+
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
-                            </Link>
                           </TableBodyCell>
                         </TableRow>
                       ))}
@@ -661,7 +727,7 @@ export default function DivisionDashboard() {
               )}
             </TabPanel>
 
-            {/* --- Tab 2: سجل العمليات + إضافة تعليق --- */}
+            {/* تبويب 2: سجل العمليات + إضافة تعليق */}
             <TabPanel value="2">
               <SectionTitle>سجل العمليات</SectionTitle>
               <ChatContainer variant="outlined">
@@ -674,7 +740,8 @@ export default function DivisionDashboard() {
                       {h.ActionNote && ` — ${h.ActionNote}`}
                       <br />
                       <small>
-                        بواسطة {h.ActionBy} في {new Date(h.ActionDate).toLocaleString()}
+                        بواسطة {h.ActionBy} في{' '}
+                        {new Date(h.ActionDate).toLocaleString()}
                       </small>
                     </ChatBubble>
                   ))
@@ -691,87 +758,29 @@ export default function DivisionDashboard() {
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="اكتب تعليقك هنا…"
                 />
-                <FullWidthButton type="submit" variant="contained" disabled={sending}>
+                <FullWidthButton
+                  type="submit"
+                  variant="contained"
+                  disabled={sending}
+                >
                   {sending ? 'جاري الإرسال…' : 'إرسال التعليق'}
                 </FullWidthButton>
               </StyledForm>
             </TabPanel>
           </DialogContent>
         </StyledTabContext>
-
         <DialogActions>
           <Button onClick={handleDetailClose}>إغلاق</Button>
         </DialogActions>
       </Dialog>
 
-      {/* — Summon Dialog — */}
-      <Dialog open={summonOpen} onClose={handleCloseSummon} fullWidth maxWidth="xs">
-        <DialogTitle>استقدام الطلب #{selectedReqId}</DialogTitle>
-        <DialogContent>
-          <Typography>هل تريد حقاً استقدام هذا الطلب للاستلام؟</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseSummon}>إلغاء</Button>
-          <Button
-            variant="contained"
-            color="info"
-            onClick={handleConfirmSummon}
-            disabled={summoning}
-          >
-            {summoning ? 'جاري…' : 'نعم، استقدام'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* — Attachments Preview Dialog — */}
-      <Dialog open={attachmentModalOpen} onClose={() => setAttachmentModalOpen(false)} fullWidth maxWidth="lg">
-        <DialogTitle>معاينة المرفق</DialogTitle>
-        <DialogContent sx={{ textAlign: 'center', p: 0 }}>
-          {attachmentType === 'pdf' ? (
-            <Box sx={{ width: '100%', height: '80vh' }}>
-              <object data={attachmentUrl} type="application/pdf" width="100%" height="100%">
-                <Typography sx={{ mt: 2 }}>
-                  عذراً، المتصفح الحالي لا يدعم عرض ملفات PDF. يمكنك&nbsp;
-                  <Button component="a" href={attachmentUrl} target="_blank" rel="noopener noreferrer" size="small">
-                    تحميل PDF
-                  </Button>
-                  &nbsp;وطباعته من هناك.
-                </Typography>
-              </object>
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                width: '100%',
-                height: '80vh',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                bgcolor: '#000',
-              }}
-            >
-              <img
-                src={attachmentUrl}
-                alt="Attachment Preview"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  objectFit: 'contain',
-                }}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handlePrintAttachment} variant="outlined" startIcon={<PictureAsPdfIcon />}>
-            طباعة المرفق
-          </Button>
-          <Button onClick={() => setAttachmentModalOpen(false)}>إغلاق</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* — Forward Modal — */}
-      <Dialog open={forwardOpen} onClose={() => setForwardOpen(false)} fullWidth maxWidth="sm">
+      {/* نافذة التحويل */}
+      <Dialog
+        open={forwardOpen}
+        onClose={() => setForwardOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle>تحويل الطلب #{selectedReqId}</DialogTitle>
         <DialogContent>
           {forwardList.map((row, idx) => {
@@ -801,59 +810,68 @@ export default function DivisionDashboard() {
                   </Select>
                 </FormControl>
 
-                {/* قائمة الموظفين للوحدة */}
-                {emps.map((emp, idx2) => {
-  const isChecked = forwardList[idx].empRows.some(er => er.id === emp.SectionEmployeeID);
-  const note = forwardList[idx].empRows.find(er => er.id === emp.SectionEmployeeID)?.note || '';
+                {/* قائمة الموظفين التابعين للوحدة */}
+                {emps.map((emp) => {
+                  const isChecked = row.empRows.some(
+                    (er) => er.id === emp.SectionEmployeeID
+                  );
+                  const isDisabled = assignedEmpIds.includes(emp.SectionEmployeeID);
+                  const note =
+                    row.empRows.find((er) => er.id === emp.SectionEmployeeID)?.note ||
+                    '';
+                  return (
+                    <Box
+                      key={emp.SectionEmployeeID}
+                      sx={{ display: 'flex', alignItems: 'center', mb: 1 }}
+                    >
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={isChecked}
+                            disabled={isDisabled}
+                            onChange={(e) => {
+                              const copy = [...forwardList];
+                              if (e.target.checked) {
+                                copy[idx].empRows.push({
+                                  id: emp.SectionEmployeeID,
+                                  name: emp.FullName,
+                                  note: '',
+                                });
+                              } else {
+                                copy[idx].empRows = copy[idx].empRows.filter(
+                                  (er) => er.id !== emp.SectionEmployeeID
+                                );
+                              }
+                              setForwardList(copy);
+                            }}
+                          />
+                        }
+                        label={
+                          isDisabled
+                            ? `${emp.FullName} (معين مسبقًا)`
+                            : emp.FullName
+                        }
+                        sx={{ mr: 2 }}
+                      />
 
-  // نحدد ما إذا كان الموظف مُختارًا في أي صف آخر (صف غير idx):
-  const isUsedElsewhere = forwardList.some((otherRow, otherIdx) => {
-    return otherIdx !== idx && otherRow.empRows.some(er => er.id === emp.SectionEmployeeID);
-  });
-
-  return (
-    <Box key={emp.SectionEmployeeID} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={isChecked}
-            // إذا الموظف مُختار في صف آخر، نُعطّل هذا الاختيار:
-            disabled={isUsedElsewhere}
-            onChange={e => {
-              const copy = [...forwardList];
-              if (e.target.checked) {
-                copy[idx].empRows.push({ id: emp.SectionEmployeeID, note: '' });
-              } else {
-                copy[idx].empRows = copy[idx].empRows.filter(
-                  er => er.id !== emp.SectionEmployeeID
-                );
-              }
-              setForwardList(copy);
-            }}
-          />
-        }
-        label={emp.FullName}
-        sx={{ mr: 2 }}
-      />
-
-      {isChecked && (
-        <TextField
-          placeholder="ملاحظة"
-          value={note}
-          onChange={e => {
-            const copy = [...forwardList];
-            const target = copy[idx].empRows.find(
-              er => er.id === emp.SectionEmployeeID
-            )!;
-            target.note = e.target.value;
-            setForwardList(copy);
-          }}
-          sx={{ flex: 1, mr: 2 }}
-        />
-      )}
-    </Box>
-  );
-})}
+                      {isChecked && !isDisabled && (
+                        <TextField
+                          placeholder="ملاحظة"
+                          value={note}
+                          onChange={(e) => {
+                            const copy = [...forwardList];
+                            const target = copy[idx].empRows.find(
+                              (er) => er.id === emp.SectionEmployeeID
+                            )!;
+                            target.note = e.target.value;
+                            setForwardList(copy);
+                          }}
+                          sx={{ flex: 1, mr: 2 }}
+                        />
+                      )}
+                    </Box>
+                  );
+                })}
 
                 <Button
                   startIcon={<DeleteIcon />}
@@ -865,6 +883,7 @@ export default function DivisionDashboard() {
               </Box>
             );
           })}
+
           <Button startIcon={<AddIcon />} onClick={addForwardRow} sx={{ mt: 1 }}>
             إضافة وحدة
           </Button>
@@ -882,11 +901,11 @@ export default function DivisionDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* — Confirm Complete Dialog — */}
+      {/* نافذة تأكيد الإنجاز */}
       <Dialog open={completeOpen} onClose={handleCloseComplete} fullWidth maxWidth="xs">
         <DialogTitle>تأكيد إنجاز الطلب #{selectedReqId}</DialogTitle>
         <DialogContent>
-          <Typography>هل تريد حقاً تأكيد إنجاز هذا الطلب؟</Typography>
+          <Typography>هل تريد حقًا تأكيد إنجاز هذا الطلب؟</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseComplete}>إلغاء</Button>
@@ -901,9 +920,32 @@ export default function DivisionDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* — Snackbar عام — */}
-      <Snackbar open={!!snackbar} autoHideDuration={3000} onClose={() => setSnackbar(null)}>
-        <Alert severity={snackbar?.severity} onClose={() => setSnackbar(null)}>
+      {/* نافذة تأكيد الاستقدام */}
+      <Dialog open={summonOpen} onClose={handleCloseSummon} fullWidth maxWidth="xs">
+        <DialogTitle>تأكيد استقدام الطلب #{selectedReqId}</DialogTitle>
+        <DialogContent>
+          <Typography>هل تريد حقًا استقدام هذا الطلب للاستلام؟</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSummon}>إلغاء</Button>
+          <Button
+            variant="contained"
+            color="info"
+            onClick={handleConfirmSummon}
+            disabled={summoning}
+          >
+            {summoning ? 'جاري…' : 'نعم، استقدام'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar عام */}
+      <Snackbar
+        open={!!snackbar}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar(null)}
+      >
+        <Alert severity={snackbar?.severity} onClose={() => setSnackbar(null)} sx={{ width: '100%' }}>
           {snackbar?.message}
         </Alert>
       </Snackbar>

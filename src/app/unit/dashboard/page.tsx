@@ -623,14 +623,10 @@ export default function DivisionDashboard() {
                             {new Date(dr.RequestDate).toISOString().slice(0, 10)}
                           </TableBodyCell>
                           <TableBodyCell>
-                            <Link
-                              href={`/unit/requests/${dr.RequestID}`}
-                              passHref
-                            >
-                              <IconButton size="small">
+                                                <IconButton onClick={() => handleView(dr.RequestID)}>
+
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
-                            </Link>
                           </TableBodyCell>
                         </TableRow>
                       ))}

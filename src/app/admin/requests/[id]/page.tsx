@@ -156,6 +156,14 @@ export default function AdminDashboard() {
       fetch(`/api/admin/requests/${selectedReqId}/history`, { credentials:'include' })
         .then(r => r.ok? r.json(): [])
         .then(setHistory);
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تعليق',
+        }),
+      });
     } catch (err:any) {
       setSnackbar({ message: err.error||'فشل إضافة التعليق', severity:'error' });
     } finally {
@@ -279,13 +287,11 @@ export default function AdminDashboard() {
                           <TableCell align="center">
                             {new Date(dr.RequestDate).toISOString().slice(0, 10)}
                           </TableCell>
-                          <TableCell align="center">
-                            <Link href={`/admin/requests/${dr.RequestID}`} passHref>
-                              <IconButton component="a" color="primary" size="small">
+                          <TableBodyCell>
+                              <IconButton size="small" onClick={() => handleView(dr.RequestID)}>
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
-                            </Link>
-                          </TableCell>
+                          </TableBodyCell>
                         </TableRow>
                       ))}
                     </TableBody>

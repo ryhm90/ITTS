@@ -159,11 +159,6 @@ export default function DivisionDashboard() {
   const handleCloseSummon = () => setSummonOpen(false);
 
   // نافذة التحويل
-  const [forwardOpen, setForwardOpen] = useState(false);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [unitEmployeesMap, setUnitEmployeesMap] = useState<Record<number, Employee[]>>({});
-  const [forwardList, setForwardList] = useState<ForwardRow[]>([]);
-  const [forwarding, setForwarding] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const router       = useRouter();
   const searchParams = useSearchParams();
@@ -173,10 +168,10 @@ export default function DivisionDashboard() {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/unit/requests/complete?page=${page}&pageSize=${pageSize}`,
+`/api/unit/requests/complete?page=${page}&pageSize=${pageSize}`,
         { credentials: 'include' }
       );
-      if (!res.ok) throw new Error();
+            if (!res.ok) throw new Error();
       const data = await res.json();
       // نتأكد من أن data.items أو data أو data.data هو المصفوفة
       const items: DivisionRequest[] = Array.isArray(data)
@@ -254,7 +249,6 @@ export default function DivisionDashboard() {
     setDetail(null);
     setHistory([]);
     setDeviceRequests([]);
-    setForwardList([]);
     setComment('');
     setAssignedEmpIds([]);
   };
@@ -373,7 +367,7 @@ export default function DivisionDashboard() {
   return (
     <PageContainer>
       <HeaderRow>
-        <PageTitle>الطلبات المنجزة</PageTitle>
+              <PageTitle>الطلبات المنجزة</PageTitle>
       </HeaderRow>
 
       {!loading && requests.length === 0 && (
@@ -623,14 +617,10 @@ export default function DivisionDashboard() {
                             {new Date(dr.RequestDate).toISOString().slice(0, 10)}
                           </TableBodyCell>
                           <TableBodyCell>
-                            <Link
-                              href={`/unit/requests/${dr.RequestID}`}
-                              passHref
-                            >
-                              <IconButton size="small">
+                                                <IconButton onClick={() => handleView(dr.RequestID)}>
+
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
-                            </Link>
                           </TableBodyCell>
                         </TableRow>
                       ))}

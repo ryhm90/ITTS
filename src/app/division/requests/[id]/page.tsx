@@ -143,6 +143,14 @@ export default function DivisionRequestDetails() {
         .catch(() => {});
       setComment('');
       showToast({ type: 'success', message: 'تم إضافة التعليق' });
+      await fetch(`/api/admin/requests/${id}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تعليق',
+        }),
+      });
     } else {
       const err = await res.json();
       showToast({ type: 'error', message: err.error || 'فشل إضافة التعليق' });

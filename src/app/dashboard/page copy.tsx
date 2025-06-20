@@ -351,6 +351,7 @@ const handleError = useCallback((msg: string) => {
                 const all: HistoryItem[] = await hres.json();
                 setViewHistory(all.filter(h => h.ActionType !== 'تعليق'));
               }
+              
             } catch (err: any) {
               setSnackbar({ message: err.error || 'فشل في الإرسال', severity: 'error' });
             } finally {

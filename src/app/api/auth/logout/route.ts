@@ -1,12 +1,11 @@
+// app/api/auth/logout/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  // ✅ نوجه إلى /login باستخدام URL كامل
-  const response = NextResponse.redirect(new URL('/login', req.url));
-  
-  // ✅ نحذف الكوكي token
-  response.cookies.set('token', '', { maxAge: 0 });
-
-  return response;
+  // مسح التوكن
+  const res = NextResponse.json({ success: true });
+  res.cookies.set('token', '', { maxAge: 0, path: '/' });
+  return res;
 }

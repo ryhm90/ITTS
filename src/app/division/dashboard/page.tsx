@@ -144,6 +144,8 @@ export default function DivisionDashboard() {
   // المستخدم الحالي
   const [user, setUser] = useState<DecodedToken | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // تأكيد الإنجاز
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -164,8 +166,6 @@ export default function DivisionDashboard() {
   const [forwardList, setForwardList] = useState<ForwardRow[]>([]);
   const [forwarding, setForwarding] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const router       = useRouter();
-  const searchParams = useSearchParams();
 
   // تحميل قائمة الطلبات مع pagination
   const loadRequests = async () => {
@@ -221,10 +221,9 @@ export default function DivisionDashboard() {
       const [reqRes, histRes, sameRes, chRes] = await Promise.all([
         fetch(`/api/division/requests/${id}`, { credentials: 'include' }),
         fetch(`/api/admin/requests/${id}/history`, { credentials: 'include' }),
-        fetch(`/api/division/requests?deviceId=${id}`, { credentials: 'include' }),
+        fetch(`/api/division/requests?requestId=${id}`, { credentials: 'include' }),
         fetch(`/api/division/requests/${id}/current-handlers`, { credentials: 'include' }),
       ]);
-
       if (reqRes.ok) setDetail(await reqRes.json());
       if (histRes.ok) setHistory(await histRes.json());
       if (sameRes.ok) {
@@ -278,6 +277,11 @@ export default function DivisionDashboard() {
         body: JSON.stringify({ comment }),
       });
       if (!res.ok) throw await res.json();
+      showToast({ type: 'success', message: 'تم إضافة التعليق' });
+      setComment('');
+      // إعادة تحميل السجل
+      const h = await fetch(`/api/admin/requests/${selectedReqId}/history`, { credentials: 'include' });
+      if (h.ok) setHistory(await h.json());
       await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -286,11 +290,6 @@ export default function DivisionDashboard() {
           actionType: 'تعليق',
         }),
       });
-      showToast({ type: 'success', message: 'تم إضافة التعليق' });
-      setComment('');
-      // إعادة تحميل السجل
-      const h = await fetch(`/api/admin/requests/${selectedReqId}/history`, { credentials: 'include' });
-      if (h.ok) setHistory(await h.json());
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل إضافة التعليق' });
     } finally {
@@ -308,6 +307,10 @@ export default function DivisionDashboard() {
         credentials: 'include',
       });
       if (!res.ok) throw await res.json();
+      showToast({ type: 'success', message: 'تم تأكيد الإنجاز' });
+      handleCloseComplete();
+      handleDetailClose();
+      // إعادة تحميل قائمة الطلبات
       await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -316,10 +319,6 @@ export default function DivisionDashboard() {
           actionType: 'تغير حالة',
         }),
       });
-      showToast({ type: 'success', message: 'تم تأكيد الإنجاز' });
-      handleCloseComplete();
-      handleDetailClose();
-      // إعادة تحميل قائمة الطلبات
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل في تأكيد الإنجاز' });
@@ -338,6 +337,9 @@ export default function DivisionDashboard() {
         credentials: 'include',
       });
       if (!res.ok) throw await res.json();
+      showToast({ type: 'success', message: 'تم تسجيل الاستقدام للاستلام' });
+      handleCloseSummon();
+      handleDetailClose();
       await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -346,9 +348,6 @@ export default function DivisionDashboard() {
           actionType: 'تغير حالة',
         }),
       });
-      showToast({ type: 'success', message: 'تم تسجيل الاستقدام للاستلام' });
-      handleCloseSummon();
-      handleDetailClose();
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل تسجيل الاستقدام' });
@@ -407,7 +406,6 @@ export default function DivisionDashboard() {
           note: er.note,
         })),
       }));
-console.log(payload)
       const res = await fetch(
         `/api/division/requests/${selectedReqId}/forward`,
         {
@@ -418,6 +416,9 @@ console.log(payload)
         }
       );
       if (!res.ok) throw await res.json();
+
+      showToast({ type: 'success', message: 'تم التحويل' });
+      setForwardOpen(false);
 await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -426,9 +427,6 @@ await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
           actionType: 'تحويل',
         }),
       });
-      showToast({ type: 'success', message: 'تم التحويل' });
-      setForwardOpen(false);
-
       // 1) إعادة تحميل قائمة الطلبات الرئيسية
       await loadRequests();
 
@@ -450,18 +448,18 @@ await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
     }
   };
   const actor = `${user?.role} - ${user?.section?.name} - ${user?.name}`;
-// إذا جاءنا ?viewRequest=85، نفتح التفاصيل لذلك الطلب
-  useEffect(() => {
+React.useEffect(() => {
     const vr = searchParams.get('viewRequest');
     if (vr) {
       const id = Number(vr);
       if (!isNaN(id)) {
         handleView(id);
-        // ننظف الـ query من الـ URL
+        // نظف الـ query من الـ URL
         router.replace('/division/dashboard', { scroll: false });
       }
     }
   }, [searchParams, router]);
+
   return (
     <PageContainer>
       <HeaderRow>
@@ -718,14 +716,10 @@ await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
                             {new Date(dr.RequestDate).toISOString().slice(0, 10)}
                           </TableBodyCell>
                           <TableBodyCell>
-                            <Link
-                              href={`/division/requests/${dr.RequestID}`}
-                              passHref
-                            >
-                              <IconButton size="small">
+                              <IconButton onClick={() => handleView(dr.RequestID)}>
+
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
-                            </Link>
                           </TableBodyCell>
                         </TableRow>
                       ))}
@@ -734,6 +728,7 @@ await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
                 </>
               )}
             </TabPanel>
+
             {/* تبويب 2: سجل العمليات + إضافة تعليق */}
             <TabPanel value="2">
               <SectionTitle>سجل العمليات</SectionTitle>

@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
     const service     = getField('service');
     const memoID      = getField('memoID');
     const memoDateRaw = getField('memoDate');
-    const deviceId    = parseInt(getField('deviceId'), 10);
+const deviceIdRaw = getField('deviceId');
+const deviceId    = deviceIdRaw ? parseInt(deviceIdRaw, 10) : 7257;
 
     if ([title, description, service, memoID, memoDateRaw].some(f => !f) || isNaN(deviceId)) {
       return NextResponse.json({ error: 'الرجاء تعبئة جميع الحقول المطلوبة' }, { status: 400 });

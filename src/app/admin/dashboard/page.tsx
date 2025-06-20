@@ -75,6 +75,7 @@ interface AdminRequest {
   deviceNo: number;
   deviceDesc: string | null;
   service: string;
+
 }
 
 interface RequestDetails extends AdminRequest {
@@ -246,11 +247,20 @@ export default function AdminDashboard() {
         body: JSON.stringify({ comment }),
       });
       if (!res.ok) throw await res.json();
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تعليق',
+        }),
+      });
       setComment('');
       showToast({ type: 'success', message: 'تم إضافة التعليق' });
       // إعادة تحميل السجل
       const histRes = await fetch(`/api/admin/requests/${selectedReqId}/history`, { credentials: 'include' });
       if (histRes.ok) setHistory(await histRes.json());
+      
       await loadRequests();
     } catch (err: any) {
       setSnackbar({ message: err.error || 'فشل إضافة التعليق', severity: 'error' });
@@ -282,6 +292,14 @@ export default function AdminDashboard() {
       showToast({ type: 'success', message: 'تم إرسال المراجعة وتحديث الحالة إلى معلق' });
       handleCloseReview();
       handleDetailClose();
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تغير حالة',
+        }),
+      });
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل إرسال المراجعة' });
@@ -306,6 +324,14 @@ export default function AdminDashboard() {
       showToast({ type: 'success', message: 'تم تأكيد الإنجاز' });
       handleCloseComplete();
       handleDetailClose();
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تغير حالة',
+        }),
+      });
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل في تأكيد الإنجاز' });
@@ -330,6 +356,14 @@ export default function AdminDashboard() {
       showToast({ type: 'success', message: 'تم تسجيل الاعتذار' });
       handleCloseDecline();
       handleDetailClose();
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تغير حالة',
+        }),
+      });
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل تسجيل الاعتذار' });
@@ -354,6 +388,14 @@ export default function AdminDashboard() {
       showToast({ type: 'success', message: 'تم تسجيل الاستقدام للاستلام' });
       handleCloseSummon();
       handleDetailClose();
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تغير حالة',
+        }),
+      });
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل تسجيل الاستقدام' });
@@ -387,7 +429,7 @@ export default function AdminDashboard() {
     if (!detail) return;
     setDeviceRequests([]);
 
-    fetch(`/api/admin/requests?deviceId=${detail.deviceId}`, { credentials: 'include' })
+    fetch(`/api/admin/requests?deviceId=${detail.deviceId}&serviceName=${detail.service}&depName=${detail.departmentName}&divName=${detail.divisionName}`, { credentials: 'include' })
       .then(async (r) => {
         if (!r.ok) return [];
         const json = await r.json();
@@ -464,6 +506,14 @@ export default function AdminDashboard() {
       }
       showToast({ type: 'success', message: 'تم التحويل بنجاح' });
       handleDetailClose();
+      await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          actionType: 'تحويل',
+        }),
+      });
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل في التحويل' });
@@ -739,11 +789,9 @@ React.useEffect(() => {
                             {new Date(dr.RequestDate).toISOString().slice(0, 10)}
                           </TableBodyCell>
                           <TableBodyCell>
-                            <Link href={`/admin/requests/${dr.RequestID}`} passHref>
-                              <IconButton size="small">
+                              <IconButton size="small" onClick={() => handleView(dr.RequestID)}>
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
-                            </Link>
                           </TableBodyCell>
                         </TableRow>
                       ))}

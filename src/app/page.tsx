@@ -27,12 +27,7 @@ export default function Home() {
         >
           تسجيل الدخول
         </button>
-        <button
-          onClick={() => router.push('/signup')}
-          className="bg-green-600 text-white px-6 py-2 rounded"
-        >
-          مستخدم جديد
-        </button>
+
       </div>
     </main>
   );

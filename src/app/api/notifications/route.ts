@@ -48,14 +48,35 @@ export async function GET(req: NextRequest) {
       .input('offset', sql.Int, offset)
       .input('fetch',  sql.Int, pageSize)
       .query(`
-        SELECT
-          ID, RequestID, ChangeType, CreatedAt, IsRead, Metadata
-        FROM Notifications
-        WHERE RecipientID = @empId
-          ${userRole === 'جهة مستفيدة' ? "AND ChangeType <> N'تعليق'" : ''}
-        ORDER BY IsRead ASC, CreatedAt DESC
-        OFFSET @offset ROWS
-        FETCH NEXT @fetch ROWS ONLY;
+        WITH LatestNotifications AS (
+  SELECT
+    ID,
+    RequestID,
+    ChangeType,
+    CreatedAt,
+    IsRead,
+    Metadata,
+    ROW_NUMBER() OVER (
+      PARTITION BY RequestID, RecipientID
+      ORDER BY CreatedAt DESC
+    ) AS rn
+  FROM Notifications
+  WHERE RecipientID = @empId
+    ${userRole === 'جهة مستفيدة' ? "AND ChangeType <> N'تعليق'" : ''}
+)
+SELECT
+  ID,
+  RequestID,
+  ChangeType,
+  CreatedAt,
+  IsRead,
+  Metadata
+FROM LatestNotifications
+WHERE rn = 1
+ORDER BY IsRead ASC, CreatedAt DESC
+OFFSET @offset ROWS
+FETCH NEXT @fetch ROWS ONLY;
+
       `);
 
     const items = recordset.map((r: any) => ({

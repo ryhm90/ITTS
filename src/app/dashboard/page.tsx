@@ -114,7 +114,7 @@ const categories: Record<CategoryKey, { label: string; icon: React.ReactNode; se
   maintenance: {
     label: 'خدمات صيانة',
     icon: <BuildIcon color="primary"/>,
-    services: ['صيانة الحاسبات وملحقاتها', 'صيانة الطابعات وملحقاتها', 'صيانة أجهزة الاستنساخ', 'صيانة كاميرات المراقبة'],
+    services: ['صيانة الحاسبات وملحقاتها', 'صيانة الطابعات وملحقاتها', 'صيانة أجهزة الاستنساخ','صيانة أجهزة الماسح الضوئي', 'صيانة كاميرات المراقبة'],
   },
    network: {
     label: 'خدمات انترنت',
@@ -337,7 +337,8 @@ export default function Dashboard() {
                 <TableCell align="center">{req.service}</TableCell>
                 <TableCell align="center">{req.Status}</TableCell>
                 <TableCell align="center">
-                  {req.deviceType} #{req.deviceNo}
+                  {req.deviceType}#{req.deviceNo}
+                    {req.deviceDesc && ` (${req.deviceDesc})`}
                 </TableCell>
                 <TableCell align="center">
                   {/* View History */}
@@ -749,6 +750,15 @@ function NewRequestDialog({ open, onClose, onSuccess, onError }: NewRequestDialo
         break;
       case 'صيانة الحاسبات وملحقاتها':
         typeId = 1;
+        break;
+      case 'صيانة أجهزة الاستنساخ':
+        typeId = 5;
+        break;
+      case 'صيانة أجهزة الماسح الضوئي':
+        typeId = 4;
+        break;
+      case 'تحديث نظام برمجي':
+        typeId = 7;
         break;
       default:
         typeId = 0;

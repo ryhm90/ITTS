@@ -574,7 +574,7 @@ export default function DivisionDashboard() {
                       variant="contained"
                       color="success"
                       onClick={handleOpenComplete}
-                      disabled={!detail || detail.Status !== 'تم التوجيه'}
+                      disabled={!detail || detail.Status === 'تأكيد انجاز' || detail.Status === 'اعتذار' || detail.Status === 'مراجعة الطلب'}
                       sx={{ ml: 1 }}
                     >
                       تأكيد الإنجاز

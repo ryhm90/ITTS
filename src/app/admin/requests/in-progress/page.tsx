@@ -567,6 +567,7 @@ React.useEffect(() => {
                   </TableBodyCell>
                   <TableBodyCell>
                     {r.deviceType}#{r.deviceNo}
+                     {r.deviceDesc && ` (${r.deviceDesc})`}
                   </TableBodyCell>
                   <TableBodyCell>{r.service}</TableBodyCell>
                   <TableBodyCell>{r.Status}</TableBodyCell>

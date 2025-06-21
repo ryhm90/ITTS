@@ -566,8 +566,8 @@ React.useEffect(() => {
                     {r.divisionName} &gt; {r.departmentName} &gt; {r.sectionName}
                   </TableBodyCell>
                   <TableBodyCell>
-                    {r.deviceType}#{r.deviceNo}
-                  </TableBodyCell>
+{r.deviceType}#{r.deviceNo}
+                    {r.deviceDesc && ` (${r.deviceDesc})`}                  </TableBodyCell>
                   <TableBodyCell>{r.service}</TableBodyCell>
                   <TableBodyCell>{r.Status}</TableBodyCell>
                   <TableBodyCell>
@@ -716,7 +716,7 @@ React.useEffect(() => {
                       variant="contained"
                       color="success"
                       onClick={handleOpenComplete}
-                      disabled={!detail || detail.Status !== 'تم التوجيه' }
+                      disabled={!detail || detail.Status === 'تأكيد انجاز' || detail.Status === 'اعتذار' || detail.Status === 'مراجعة الطلب'}
                       sx={{ ml: 1 }}
                     >
                       تأكيد الإنجاز

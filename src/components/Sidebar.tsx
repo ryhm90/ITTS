@@ -124,7 +124,7 @@ const handleOpenNotif = (e: React.MouseEvent<HTMLElement>) => {
   const navConfig: Record<string, { href: string; label: string; icon: React.ReactNode }[]> = {
     'جهة مستفيدة': [
       { href: '/dashboard',            label: 'لوحة التحكم',    icon: <DashboardIcon /> },
-      { href: '/dashboard/request/new', label: 'طلب جديد',      icon: <AddBoxIcon /> },
+      //{ href: '/dashboard/request/new', label: 'طلب جديد',      icon: <AddBoxIcon /> },
     ],
     'مدير شعبة': [
       { href: '/division/dashboard',           label: 'لوحة الشعبة',       icon: <DashboardIcon /> },

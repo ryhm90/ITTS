@@ -370,6 +370,18 @@ export default function DivisionDashboard() {
       }
     }
   }, [searchParams, router]);
+    const [drPage, setDrPage] = useState(0);
+  const [drRowsPerPage, setDrRowsPerPage] = useState(5);
+  
+  // 2) معالجات تغيير الصفحة وعدد الصفوف:
+  const handleDrChangePage = (_: unknown, newPage: number) => {
+    setDrPage(newPage);
+  };
+  const handleDrChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDrRowsPerPage(parseInt(e.target.value, 10));
+    setDrPage(0);
+  };
+  
   return (
     <PageContainer>
       <HeaderRow>
@@ -598,43 +610,55 @@ export default function DivisionDashboard() {
             {/* تبويب 1: طلبات بنفس الجهاز */}
             <TabPanel value="1">
               {deviceRequests.length === 0 ? (
-                <Typography>لا توجد طلبات أخرى لنفس الجهاز.</Typography>
+                <Typography>لا توجد طلبات أخرى لنفس الجهاز او الخدمة.</Typography>
               ) : (
                 <>
-                  <SectionTitle>طلبات بنفس الجهاز</SectionTitle>
+                  <SectionTitle>طلبات بنفس الجهاز او الخدمة</SectionTitle>
                   <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        {['#', 'الموضوع', 'الخدمة', 'الحالة', 'التاريخ', 'إجراء'].map(
-                          (h) => (
-                            <TableHeaderCell key={h}>{h}</TableHeaderCell>
-                          )
-                        )}
-                      </TableRow>
-                    </TableHead>
-                    <tbody>
-                      {deviceRequests.map((dr) => (
-                        <TableRow key={dr.RequestID} hover>
-                          <TableBodyCell>{dr.RequestID}</TableBodyCell>
-                          <TableBodyCell>{dr.Title}</TableBodyCell>
-                          <TableBodyCell>{dr.service}</TableBodyCell>
-                          <TableBodyCell>{dr.Status}</TableBodyCell>
-                          <TableBodyCell>
-                            {new Date(dr.RequestDate).toISOString().slice(0, 10)}
-                          </TableBodyCell>
-                          <TableBodyCell>
-                                                <IconButton onClick={() => handleView(dr.RequestID)}>
+        <TableHead>
+          <TableRow>
+            {['#', 'الموضوع', 'الخدمة', 'الحالة', 'التاريخ', 'إجراء'].map(h => (
+              <TableHeaderCell key={h}>{h}</TableHeaderCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <tbody>
+          {deviceRequests
+            .slice(drPage * drRowsPerPage, drPage * drRowsPerPage + drRowsPerPage)
+            .map(dr => (
+              <TableRow key={dr.RequestID} hover>
+                <TableBodyCell>{dr.RequestID}</TableBodyCell>
+                <TableBodyCell>{dr.Title}</TableBodyCell>
+                <TableBodyCell>{dr.service}</TableBodyCell>
+                <TableBodyCell>{dr.Status}</TableBodyCell>
+                <TableBodyCell>
+                  {new Date(dr.RequestDate).toISOString().slice(0, 10)}
+                </TableBodyCell>
+                <TableBodyCell>
+                  <IconButton size="small" onClick={() => handleView(dr.RequestID)}>
+                    <VisibilityIcon fontSize="small" />
+                  </IconButton>
+                </TableBodyCell>
+              </TableRow>
+            ))}
+        </tbody>
+      </Table>
 
-                                <VisibilityIcon fontSize="small" />
-                              </IconButton>
-                          </TableBodyCell>
-                        </TableRow>
-                      ))}
-                    </tbody>
-                  </Table>
-                </>
-              )}
-            </TabPanel>
+      {/* 4) إضافة TablePagination لطلبات الجهاز */}
+      <TablePagination
+        component="div"
+        count={deviceRequests.length}
+        page={drPage}
+        onPageChange={handleDrChangePage}
+        rowsPerPage={drRowsPerPage}
+        onRowsPerPageChange={handleDrChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 25]}
+        labelRowsPerPage="عدد الصفوف:"
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} من ${count}`}
+      />
+    </>
+  )}
+</TabPanel>
 
             {/* تبويب 2: سجل العمليات + إضافة تعليق */}
             <TabPanel value="2">

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import jwt from 'jsonwebtoken';
 import sql from 'mssql';
+import { Console } from 'console';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
   `;
   const devId    = devIdStr ? parseInt(devIdStr, 10) : undefined;
 
-  if (devId !== 7251) {
+  if (devId !== 7249) {
     // فلترة على جهاز واحد
     if (devId) {
     ps.input('deviceId', sql.Int, devId);
@@ -82,11 +83,10 @@ export async function GET(req: NextRequest) {
     } else {
           query += ` WHERE r.Status IN (N'قيد الإستلام', N'استلم')`;
     }
-  } else if (devId === 7251) {
+  } else if (devId === 7249) {
     ps.input('DepName', sql.NVarChar, DepName);
     ps.input('DivName', sql.NVarChar, DivName);
     ps.input('Service', sql.NVarChar, Service);
-
     query += ` WHERE r.DepartmentName = @DepName AND r.DivisionName = @DivName AND r.service = @Service  `;
 
   } else {

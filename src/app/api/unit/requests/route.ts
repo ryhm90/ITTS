@@ -97,8 +97,8 @@ export async function GET(req: NextRequest) {
 
   // 7) إضافة شروط WHERE حسب وجود requestId ו devId
   if (reqId) {
-    if (devId !== 7251) {
-      // فلترة حسب DeviceId عندما لا يساوي 7251
+    if (devId !== 7249) {
+      // فلترة حسب DeviceId عندما لا يساوي 7249
       query += ` WHERE r.DeviceId = @deviceId 
       GROUP BY
   r.RequestID,
@@ -115,11 +115,24 @@ export async function GET(req: NextRequest) {
   desc2.description_dv`;
       console.log('0')
     } else {
-      // فلترة حسب القسم والوحدة والخدمة عندما DeviceId = 7251
+      // فلترة حسب القسم والوحدة والخدمة عندما DeviceId = 7249
       query += `
         WHERE r.DepartmentName = @DepName
           AND r.DivisionName   = @DivName
           AND r.service        = @Service
+                        GROUP BY
+  r.RequestID,
+  r.Title,
+  r.Status,
+  r.service,
+  r.RequestDate,
+  r.DivisionName,
+  r.DepartmentName,
+  r.SectionName,
+  d.id_dvises,
+  t.dv_type,
+  d.no_dv,
+  desc2.description_dv
       `;
       console.log('1')
     }

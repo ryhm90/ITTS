@@ -164,6 +164,17 @@ export default function AdminDashboard() {
   const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
   const [attachmentUrl, setAttachmentUrl] = useState<string>('');
   const [attachmentType, setAttachmentType] = useState<'image' | 'pdf'>('image');
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = await res.json();
+        setUser(res.ok ? data : null);
+      } catch {
+        setUser(null);
+      }
+    })();
+  }, [pathname]);
 
   const handleOpenAttachment = (url: string) => {
     const lower = url.toLowerCase();

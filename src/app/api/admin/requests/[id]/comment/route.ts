@@ -37,9 +37,9 @@ export async function POST(
   if (!comment || !comment.trim()) {
     return NextResponse.json({ error: 'Comment is required' }, { status: 400 });
   }
-
+//مدير قسم - قسم تقنية المعلومات والاتصالات - محمد سعد مرضي 
     const actor = `${payload.role} - ${payload.department.name} - ${payload.fullName || payload.name}`;
-
+console.log(actor)
   // 5) إضافة السجل
   const db = await getConnection();
   await db.request()

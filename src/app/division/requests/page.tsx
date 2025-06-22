@@ -426,6 +426,9 @@ await fetch(`/api/admin/requests/${selectedReqId}/historyn`, {
           actionType: 'تحويل',
         }),
       });
+            const h = await fetch(`/api/admin/requests/${selectedReqId}/history`, { credentials: 'include' });
+      if (h.ok) setHistory(await h.json());
+
       // 1) إعادة تحميل قائمة الطلبات الرئيسية
       await loadRequests();
 

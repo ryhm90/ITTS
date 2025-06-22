@@ -370,6 +370,7 @@ export default function DivisionDashboard() {
       }
     }
   }, [searchParams, router]);
+  
     const [drPage, setDrPage] = useState(0);
   const [drRowsPerPage, setDrRowsPerPage] = useState(5);
   

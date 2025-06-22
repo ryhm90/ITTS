@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       .input('rid', sql.Int, requestId)
       .query(`
         UPDATE dbo.Requests
-        SET Status = N'تمت الإجابة'
+        SET Status = N'تم التوجيه'
         WHERE RequestID = @rid;
       `);
 

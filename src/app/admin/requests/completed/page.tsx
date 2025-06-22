@@ -164,6 +164,17 @@ export default function AdminDashboard() {
   const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
   const [attachmentUrl, setAttachmentUrl] = useState<string>('');
   const [attachmentType, setAttachmentType] = useState<'image' | 'pdf'>('image');
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = await res.json();
+        setUser(res.ok ? data : null);
+      } catch {
+        setUser(null);
+      }
+    })();
+  }, [pathname]);
 
   const handleOpenAttachment = (url: string) => {
     const lower = url.toLowerCase();
@@ -514,6 +525,9 @@ export default function AdminDashboard() {
           actionType: 'تحويل',
         }),
       });
+          const histRes = await fetch(`/api/admin/requests/${selectedReqId}/history`, { credentials: 'include' });
+      if (histRes.ok) setHistory(await histRes.json());
+
       await loadRequests();
     } catch (err: any) {
       showToast({ type: 'error', message: err.error || 'فشل في التحويل' });
